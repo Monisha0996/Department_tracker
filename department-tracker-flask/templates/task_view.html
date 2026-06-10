@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+  .section-heading {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #0d6efd;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 16px;
+    margin-bottom: 14px;
+  }
+
+  .section-heading.secondary {
+    background: #198754;
+  }
+
+  .section-heading.warning {
+    background: #ffc107;
+    color: #111827;
+  }
+</style>
+
+<div class="container mt-4">
+
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="mb-1">{{ task.title }}</h2>
+      <p class="text-muted mb-0">Task details, updates, proof files and status history.</p>
+    </div>
+
+    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+      Back to Dashboard
+    </a>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-4">
+
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="section-heading">
+            Task Overview
+          </div>
+          <p class="text-muted mb-0">
+            Created: {{ task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else '-' }}
+            |
+            Updated: {{ task.updated_at.strftime('%Y-%m-%d %H:%M') if task.updated_at else '-' }}
+          </p>
+        </div>
+
+        {% if task.status == "COMPLETED" %}
+          <span class="badge bg-success px-3 py-2">COMPLETED</span>
+        {% elif task.status == "IN_PROGRESS" %}
+          <span class="badge bg-warning text-dark px-3 py-2">IN PROGRESS</span>
+        {% elif task.status == "REJECTED" %}
+          <span class="badge bg-danger px-3 py-2">REJECTED</span>
+        {% else %}
+          <span class="badge bg-secondary px-3 py-2">OPEN</span>
+        {% endif %}
+      </div>
+
+      <hr>
+
+      <div class="row g-3 mb-3">
+        <div class="col-md-3">
+          <small class="text-muted">Department</small>
+          <div class="fw-semibold">{{ task.department.name if task.department else '-' }}</div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Assigned To</small>
+          <div class="fw-semibold">{{ task.assignee.name if task.assignee else '-' }}</div>
+          {% if task.assignee and task.assignee.email %}
+            <small class="text-muted">{{ task.assignee.email }}</small>
+          {% endif %}
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Assigned By</small>
+          <div class="fw-semibold">{{ task.assigner.name if task.assigner else '-' }}</div>
+        </div>
+
+        <div class="col-md-3">
+          <small class="text-muted">Due Date</small>
+          <div class="fw-semibold">{{ task.due_date or '-' }}</div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <small class="text-muted">Description</small>
+        <div class="border rounded bg-light p-3 mt-1">
+          {{ task.description if task.description else "No description provided." }}
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="row g-4">
+
+    <div class="col-lg-7">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <div class="section-heading secondary mb-0">
+            Updates & Activity Log
+          </div>
+        </div>
+
+        <div class="card-body">
+          {% for up in task.updates %}
+            <div class="border rounded p-3 mb-3 bg-light">
+
+              <div class="d-flex justify-content-between align-items-start mb-2">
+                <div>
+                  <strong>{{ up.user.name if up.user else 'Unknown User' }}</strong>
+                  <br>
+                  <small class="text-muted">
+                    {{ up.created_at.strftime('%Y-%m-%d %H:%M') if up.created_at else '-' }}
+                  </small>
+                </div>
+
+                {% if up.status == "COMPLETED" %}
+                  <span class="badge bg-success">COMPLETED</span>
+                {% elif up.status == "PROOF" %}
+                  <span class="badge bg-primary">PROOF</span>
+                {% elif up.status == "REJECTED" %}
+                  <span class="badge bg-danger">REJECTED</span>
+                {% else %}
+                  <span class="badge bg-info text-dark">COMMENT</span>
+                {% endif %}
+              </div>
+
+              <p class="mb-2">{{ up.comment if up.comment else "No comment added." }}</p>
+
+              {% if up.attachment_path %}
+                <a class="btn btn-sm btn-outline-primary"
+                   href="{{ url_for('uploaded_file', filename=up.attachment_path) }}">
+                  Download Attachment
+                </a>
+              {% endif %}
+
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-4">
+              No updates posted yet.
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-5">
+      <div class="card shadow-sm border-0">
+        <div class="card-header bg-white">
+          <div class="section-heading warning mb-0">
+            Add Update / Proof
+          </div>
+        </div>
+
+        <div class="card-body">
+          <form method="post" action="{{ url_for('task_update', task_id=task.id) }}" enctype="multipart/form-data" class="row g-3">
+
+            <div class="col-md-12">
+              <label class="form-label fw-semibold">Update Type</label>
+              <select class="form-select" name="status">
+                <option value="COMMENT">Comment</option>
+                <option value="PROOF">Proof / In Progress</option>
+                <option value="COMPLETED">Mark Completed</option>
+                {% if current_user.role in ["admin", "superadmin"] %}
+                  <option value="REJECTED">Reject</option>
+                {% endif %}
+              </select>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-semibold">Comment</label>
+              <textarea class="form-control" name="comment" rows="4" placeholder="Add notes about this update"></textarea>
+            </div>
+
+            <div class="col-md-12">
+              <label class="form-label fw-semibold">Attachment</label>
+              <input type="file" name="attachment" class="form-control">
+              <small class="text-muted">
+                Allowed: png, jpg, jpeg, pdf, doc, docx, xlsx, ppt, pptx, txt, csv, zip
+              </small>
+            </div>
+
+            <div class="col-12 d-flex justify-content-end gap-2">
+              <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">
+                Cancel
+              </a>
+
+              <button class="btn btn-primary fw-semibold">
+                Submit Update
+              </button>
+            </div>
+
+          </form>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

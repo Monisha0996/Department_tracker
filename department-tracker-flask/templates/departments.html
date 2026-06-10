@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Departments</h2>
+
+        <form method="POST" action="{{ url_for('departments') }}" class="d-flex gap-2">
+            <input 
+                type="text" 
+                name="name" 
+                class="form-control" 
+                placeholder="New department" 
+                required
+            >
+            <button type="submit" class="btn btn-primary">Add</button>
+        </form>
+    </div>
+
+    <hr>
+
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Department Name</th>
+                <th>Status</th>
+                <th style="width: 420px;">Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for dept in departments %}
+            <tr>
+                <td>{{ loop.index }}</td>
+
+                <td>
+                    <form method="POST" action="{{ url_for('edit_department', dept_id=dept.id) }}" class="d-flex gap-2">
+                        <input 
+                            type="text" 
+                            name="name" 
+                            value="{{ dept.name }}" 
+                            class="form-control"
+                            required
+                        >
+                        <button type="submit" class="btn btn-sm btn-success">
+                            Save
+                        </button>
+                    </form>
+                </td>
+
+                <td>
+                    {% if dept.is_active %}
+                        <span class="badge bg-success">Active</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Disabled</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <div class="d-flex gap-2">
+
+                        <form method="POST" action="{{ url_for('toggle_department', dept_id=dept.id) }}">
+                            {% if dept.is_active %}
+                                <button 
+                                    type="submit" 
+                                    class="btn btn-sm btn-warning"
+                                    onclick="return confirm('Disable this department?')"
+                                >
+                                    Disable
+                                </button>
+                            {% else %}
+                                <button 
+                                    type="submit" 
+                                    class="btn btn-sm btn-primary"
+                                    onclick="return confirm('Enable this department?')"
+                                >
+                                    Enable
+                                </button>
+                            {% endif %}
+                        </form>
+
+                        <form method="POST" action="{{ url_for('delete_department', dept_id=dept.id) }}">
+                            <button 
+                                type="submit" 
+                                class="btn btn-sm btn-danger"
+                                onclick="return confirm('Delete this department permanently? This will only work if no users or tasks are linked.')"
+                            >
+                                Delete
+                            </button>
+                        </form>
+
+                    </div>
+                </td>
+            </tr>
+
+            {% else %}
+            <tr>
+                <td colspan="4" class="text-center text-muted py-4">
+                    No departments found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}

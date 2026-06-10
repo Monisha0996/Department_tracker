@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Tasks</h2>
+
+        {% if current_user.role in ["admin", "superadmin"] %}
+            <a href="{{ url_for('task_new') }}" class="btn btn-primary">
+                + New Task
+            </a>
+        {% endif %}
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('filter_tasks') }}" class="row g-2 align-items-end">
+
+                <div class="col-md-2">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="ALL" {% if selected_status == "ALL" %}selected{% endif %}>All</option>
+                        <option value="OPEN" {% if selected_status == "OPEN" %}selected{% endif %}>Open</option>
+                        <option value="IN_PROGRESS" {% if selected_status == "IN_PROGRESS" %}selected{% endif %}>In Progress</option>
+                        <option value="COMPLETED" {% if selected_status == "COMPLETED" %}selected{% endif %}>Completed</option>
+                        <option value="REJECTED" {% if selected_status == "REJECTED" %}selected{% endif %}>Rejected</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Department</label>
+                    <select name="dept" class="form-select">
+                        <option value="0">All Departments</option>
+                        {% for dept in departments %}
+                            <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>
+                                {{ dept.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">From Date</label>
+                    <input type="date" name="date_from" class="form-control" value="{{ date_from or '' }}">
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">To Date</label>
+                    <input type="date" name="date_to" class="form-control" value="{{ date_to or '' }}">
+                </div>
+
+<div class="col-md-3">
+    <label class="form-label fw-semibold d-none d-md-block">&nbsp;</label>
+
+    <div class="d-flex gap-2 align-items-stretch">
+        <button type="submit" class="btn btn-primary fw-semibold">
+            Filter
+        </button>
+
+        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary fw-semibold d-flex align-items-center">
+            Reset
+        </a>
+
+        <a class="btn btn-success fw-semibold d-flex align-items-center"
+           href="{{ url_for('export_tasks_csv', status=selected_status or 'ALL', dept=selected_dept or 0, date_from=date_from or '', date_to=date_to or '') }}">
+            Export as CSV
+        </a>
+    </div>
+</div>
+
+    <!-- Task Summary -->
+    <div class="mb-3">
+        <span class="badge bg-secondary">Total: {{ tasks|length }}</span>
+    </div>
+
+    <!-- Tasks Table -->
+    <table class="table table-striped table-hover align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Assignee</th>
+                <th>Status</th>
+                <th>Due</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th style="width: 100px;">Action</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.id }}</td>
+
+                <td>
+                    <strong>{{ task.title }}</strong>
+                    {% if task.description %}
+                        <br>
+                        <small class="text-muted">
+                            {{ task.description[:80] }}{% if task.description|length > 80 %}...{% endif %}
+                        </small>
+                    {% endif %}
+                </td>
+
+                <td>{{ task.department.name if task.department else "-" }}</td>
+
+                <td>
+                    {{ task.assignee.name if task.assignee else "-" }}
+                    {% if task.assignee and task.assignee.email %}
+                        <br>
+                        <small class="text-muted">{{ task.assignee.email }}</small>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if task.status == "COMPLETED" %}
+                        <span class="badge bg-success">COMPLETED</span>
+                    {% elif task.status == "IN_PROGRESS" %}
+                        <span class="badge bg-warning text-dark">IN PROGRESS</span>
+                    {% elif task.status == "REJECTED" %}
+                        <span class="badge bg-danger">REJECTED</span>
+                    {% else %}
+                        <span class="badge bg-secondary">OPEN</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {% if task.due_date %}
+                        {{ task.due_date }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+
+                <td>
+                    {{ task.created_at.strftime('%Y-%m-%d %H:%M') if task.created_at else "-" }}
+                </td>
+
+                <td>
+                    {{ task.updated_at.strftime('%Y-%m-%d %H:%M') if task.updated_at else "-" }}
+                </td>
+
+                <td>
+                    <a href="{{ url_for('task_view', task_id=task.id) }}" class="btn btn-sm btn-outline-primary">
+                        View
+                    </a>
+                </td>
+            </tr>
+
+            {% else %}
+            <tr>
+                <td colspan="9" class="text-center text-muted py-4">
+                    No tasks found.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</div>
+{% endblock %}
